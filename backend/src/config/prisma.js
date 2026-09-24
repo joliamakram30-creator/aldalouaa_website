@@ -18,8 +18,9 @@ const adapter = new PrismaMariaDb({
 
   database: dbUrl.pathname.replace(/^\//, ""),
 
-  // Aiven requires TLS/SSL
-  ssl: true,
+  ssl: {
+    rejectUnauthorized: false,
+  },
 
   connectionLimit: 5,
   connectTimeout: 10000,
