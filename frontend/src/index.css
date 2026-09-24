@@ -1,0 +1,61 @@
+@import url("https://fonts.googleapis.com/css2?family=Alexandria:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap");
+
+:root {
+  --primary: #d94f70;
+  --primary-dark: #b83b59;
+  --soft-pink: #fce7ed;
+  --nude: #f7efea;
+  --background: #fff9f7;
+  --white: #ffffff;
+  --text: #2b2525;
+  --muted: #766d6d;
+  --gold: #c9a24d;
+  --border: #eadfdb;
+
+  font-family: "Alexandria", sans-serif;
+  color: var(--text);
+  background: var(--background);
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background: var(--background);
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+#root {
+  min-height: 100vh;
+}

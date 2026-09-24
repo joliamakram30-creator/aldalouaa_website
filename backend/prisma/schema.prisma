@@ -1,0 +1,305 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  VODAFONE_CASH
+  CASH_ON_DELIVERY
+}
+
+enum PaymentStatus {
+  UNPAID
+  PENDING_VERIFICATION
+  PAID
+  REJECTED
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  // false = account was created with Google sign-in and has no password of its own yet
+  passwordSet Boolean @default(true)
+  googleId  String?  @unique
+  phone     String?
+  role      UserRole @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders   Order[]
+  cart     Cart?
+  wishlist Wishlist[]
+  notifications Notification[]
+}
+
+model Category {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  nameAr    String?
+  slug      String   @unique
+  image     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products Product[]
+}
+
+model Product {
+  id            Int      @id @default(autoincrement())
+  name          String
+  nameAr        String?
+  slug          String   @unique
+  description   String?  @db.Text
+  descriptionAr String?  @db.Text
+  price       Decimal  @db.Decimal(10, 2)
+  oldPrice    Decimal? @db.Decimal(10, 2)
+  stock       Int      @default(0)
+  image       String?
+  isActive    Boolean  @default(true)
+  isFeatured  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  categoryId Int
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  images ProductImage[]
+  sizes  ProductSize[]
+  colors ProductColor[]
+  scents ProductScent[]
+
+  orderItems OrderItem[]
+  cartItems  CartItem[]
+  wishlists  Wishlist[]
+}
+
+model ProductImage {
+  id         Int      @id @default(autoincrement())
+  url        String   @db.Text
+  storageKey String?
+  position   Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  productId Int
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, position])
+}
+
+model StoreSetting {
+  id                   Int      @id @default(1)
+  freeShippingEnabled  Boolean  @default(true)
+  freeShippingThreshold Decimal @default(2000) @db.Decimal(10, 2)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+model ShippingZone {
+  id        Int      @id @default(autoincrement())
+  nameAr    String   @unique
+  nameEn    String   @unique
+  price     Decimal  @db.Decimal(10, 2)
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Size {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products ProductSize[]
+}
+
+model Color {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  nameAr    String?
+  hexCode   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products ProductColor[]
+}
+
+model Scent {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  nameAr    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products ProductScent[]
+}
+
+model ProductSize {
+  productId Int
+  sizeId    Int
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  size    Size    @relation(fields: [sizeId], references: [id], onDelete: Cascade)
+
+  @@id([productId, sizeId])
+}
+
+model ProductColor {
+  productId Int
+  colorId   Int
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  color   Color   @relation(fields: [colorId], references: [id], onDelete: Cascade)
+
+  @@id([productId, colorId])
+}
+model ProductScent {
+  productId Int
+  scentId   Int
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  scent   Scent   @relation(fields: [scentId], references: [id], onDelete: Cascade)
+
+  @@id([productId, scentId])
+}
+
+model Cart {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId Int  @unique
+  user   User @relation(fields: [userId], references: [id])
+
+  items CartItem[]
+}
+
+model CartItem {
+  id       Int    @id @default(autoincrement())
+  quantity Int    @default(1)
+  size     String @default("") @db.VarChar(64)
+  color    String @default("") @db.VarChar(64)
+  scent    String @default("") @db.VarChar(64)
+
+  cartId    Int
+  productId Int
+
+  cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@unique([cartId, productId, size, color, scent])
+}
+
+model Wishlist {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+
+  userId    Int
+  productId Int
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+}
+
+model Order {
+  id Int @id @default(autoincrement())
+
+  orderNumber String @unique
+
+  subtotal     Decimal @db.Decimal(10, 2)
+  shippingCost Decimal @default(0) @db.Decimal(10, 2)
+  totalAmount  Decimal @db.Decimal(10, 2)
+
+  status OrderStatus @default(PENDING)
+
+  stockReleased Boolean @default(false)
+
+  customerName  String
+  customerPhone String
+  address       String @db.Text
+  city          String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
+
+  items   OrderItem[]
+  payment Payment?
+}
+
+model Payment {
+  id Int @id @default(autoincrement())
+
+  method PaymentMethod
+  status PaymentStatus @default(UNPAID)
+
+  senderPhone   String?
+  transactionId String?
+  proofImage    String? @db.Text
+
+  reviewedBy  Int?
+  reviewedAt  DateTime?
+  reviewNotes String?   @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orderId Int   @unique
+  order   Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model OrderItem {
+  id          Int     @id @default(autoincrement())
+  quantity    Int
+  price       Decimal @db.Decimal(10, 2)
+  productName String?
+  size        String?
+  color       String?
+  scent       String?
+
+  orderId   Int
+  productId Int
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+}
+
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  type      String   @default("ORDER")
+  title     String
+  message   String   @db.Text
+  link      String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  adminId Int
+  admin   User @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId, isRead, createdAt])
+}
