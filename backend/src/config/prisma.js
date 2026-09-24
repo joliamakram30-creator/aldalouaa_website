@@ -16,9 +16,6 @@ const adapter = new PrismaMariaDb({
   password: decodeURIComponent(dbUrl.password),
   database: dbUrl.pathname.replace(/^\//, ""),
 
-  // Aiven MySQL requires SSL/TLS.
-  ssl: true,
-
   connectionLimit: Math.max(
     Number(process.env.DB_CONNECTION_LIMIT) || 10,
     2
