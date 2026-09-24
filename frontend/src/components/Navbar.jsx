@@ -10,7 +10,7 @@ import {
   X,
 } from "lucide-react";
 
-import logo from "../assets/images/logo.jpg";
+import logo from "../assets/images/photo_5841232703582310103_y-removebg-preview.png";
 import { useCart } from "../context/CartContext";
 import { useFavorites } from "../context/FavoritesContext";
 import { useAuth } from "../context/AuthContext";
