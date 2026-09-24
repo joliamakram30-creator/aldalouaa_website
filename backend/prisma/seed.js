@@ -6,6 +6,7 @@ const path = require("path");
 const prisma = require("../src/config/prisma");
 const { UPLOADS_DIR } = require("../src/services/storage");
 const { categories, sizes, colors, shippingZones } = require("./seed-data");
+const extraColors = require("./extra-colors");
 
 const ASSETS = path.join(__dirname, "seed-assets");
 
@@ -44,18 +45,33 @@ async function main() {
   }
   console.log("✅ Sizes ready");
 
-  for (const color of colors) {
-    const existing = await prisma.color.findUnique({ where: { name: color.name } });
-    if (!existing) {
-      await prisma.color.create({ data: color });
-    } else {
+  // Colours: do this in bulk (one findMany + one createMany) instead of
+  // one query per colour - avoids exhausting the DB connection pool.
+  const allColors = [...colors, ...extraColors];
+
+  const existingColors = await prisma.color.findMany({
+    where: { name: { in: allColors.map((c) => c.name) } },
+  });
+  const existingMap = new Map(existingColors.map((c) => [c.name, c]));
+
+  const toCreate = allColors.filter((c) => !existingMap.has(c.name));
+  if (toCreate.length) {
+    await prisma.color.createMany({ data: toCreate, skipDuplicates: true });
+  }
+
+  for (const color of allColors) {
+    const existing = existingMap.get(color.name);
+    if (existing) {
       const data = {};
       if (!existing.nameAr) data.nameAr = color.nameAr;
       if (!existing.hexCode) data.hexCode = color.hexCode;
-      if (Object.keys(data).length) await prisma.color.update({ where: { id: existing.id }, data });
+      if (Object.keys(data).length) {
+        await prisma.color.update({ where: { id: existing.id }, data });
+      }
     }
   }
-  console.log("✅ Colours ready");
+
+  console.log(`✅ Colours ready (${allColors.length} checked, ${toCreate.length} new)`);
 
   // Shipping zones are normally created by the migration. Only fill the table
   // if it is empty (e.g. after wiping it) - prices you changed are never touched.
