@@ -12,17 +12,18 @@ const dbUrl = new URL(process.env.DATABASE_URL);
 const adapter = new PrismaMariaDb({
   host: dbUrl.hostname,
   port: Number(dbUrl.port) || 3306,
+
   user: decodeURIComponent(dbUrl.username),
   password: decodeURIComponent(dbUrl.password),
+
   database: dbUrl.pathname.replace(/^\//, ""),
 
-  connectionLimit: Math.max(
-    Number(process.env.DB_CONNECTION_LIMIT) || 10,
-    2
-  ),
+  // Aiven requires TLS/SSL
+  ssl: true,
 
-  connectTimeout: Number(process.env.DB_CONNECT_TIMEOUT) || 10000,
-  acquireTimeout: Number(process.env.DB_ACQUIRE_TIMEOUT) || 15000,
+  connectionLimit: 5,
+  connectTimeout: 10000,
+  acquireTimeout: 15000,
 });
 
 const prisma = new PrismaClient({
