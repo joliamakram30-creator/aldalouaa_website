@@ -1,8 +1,7 @@
 import axios from "axios";
 
 // Backend address. Set VITE_API_URL in frontend/.env (e.g. https://api.your-site.com/api)
-const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:5000/api").replace(/\/$/, "");
-
+const API_URL = (import.meta.env.VITE_API_URL || "/api").replace(/\/$/, "");
 // Uploaded images are served by the backend under /uploads
 export const API_ORIGIN = new URL(API_URL, window.location.href).origin;
 
