@@ -1,0 +1,2 @@
+ALTER TABLE `ProductScent`
+ADD COLUMN `stock` INT NOT NULL DEFAULT 0;

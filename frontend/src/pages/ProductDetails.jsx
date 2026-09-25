@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Heart, Minus, Plus, Check } from "lucide-react";
@@ -17,9 +16,11 @@ const MAX_PER_LINE = 20;
 
 function ProductDetails() {
   const { id } = useParams();
+
   const { products, loading, error } = useStore();
   const { addToCart } = useCart();
   const { isFavorite, toggleFavorite } = useFavorites();
+
   const {
     t,
     isArabic,
@@ -43,7 +44,6 @@ function ProductDetails() {
   const [added, setAdded] = useState(false);
   const [formError, setFormError] = useState("");
 
-  // Different product => start from a clean selection
   useEffect(() => {
     setActiveImage(0);
     setSelectedSize("");
@@ -53,7 +53,10 @@ function ProductDetails() {
     setFormError("");
     setAdded(false);
 
-    window.scrollTo({ top: 0 });
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
   }, [id]);
 
   if (loading || error) {
@@ -72,6 +75,7 @@ function ProductDetails() {
         <main>
           <div className="coming-soon">
             <h1>{t("productNotFound")}</h1>
+
             <p>
               <Link to="/">{t("backHome")}</Link>
             </p>
@@ -81,22 +85,124 @@ function ProductDetails() {
     );
   }
 
-  const images = product.images.length
+  const images = product.images?.length
     ? product.images
-    : [product.img];
-
-  const soldOut = product.stock < 1;
-
-  const maxQuantity = Math.max(
-    1,
-    Math.min(product.stock, MAX_PER_LINE)
-  );
+    : product.img
+    ? [product.img]
+    : [];
 
   const favorited = isFavorite(product.id);
   const description = descOf(product);
 
-  // Make sure old products that don't have scents don't crash the page
-  const scents = product.scents || [];
+  const variants = Array.isArray(product.variants)
+    ? product.variants
+    : [];
+
+  const productScents = Array.isArray(product.scents)
+    ? product.scents
+    : [];
+
+  const requiresSize = (product.sizes?.length || 0) > 0;
+
+  const requiresColor = (product.colors?.length || 0) > 0;
+
+  const requiresScent = productScents.length > 0;
+
+  const hasVariants = variants.length > 0;
+
+  const selectedVariant = hasVariants
+    ? variants.find((variant) => {
+        const variantSize = variant.size?.name || null;
+
+        const variantColor = variant.color?.name || null;
+
+        return (
+          variantSize === (selectedSize || null) &&
+          variantColor === (selectedColor || null)
+        );
+      }) || null
+    : null;
+
+  const variantSelectionComplete =
+    (!requiresSize || !!selectedSize) &&
+    (!requiresColor || !!selectedColor);
+
+  const variantStock =
+    hasVariants && variantSelectionComplete && selectedVariant
+      ? Math.max(0, Number(selectedVariant.stock || 0))
+      : !hasVariants
+      ? Math.max(0, Number(product.stock || 0))
+      : 0;
+
+  const selectedProductScent = selectedScent
+    ? productScents.find(
+        (productScent) => productScent.scent?.name === selectedScent
+      )
+    : null;
+
+  const scentStock = selectedScent
+    ? Math.max(0, Number(selectedProductScent?.stock || 0))
+    : 0;
+
+  const scentSelectionComplete = !requiresScent || !!selectedScent;
+
+  const selectedScentSoldOut =
+    requiresScent &&
+    !!selectedScent &&
+    (!selectedProductScent || scentStock < 1);
+
+  const allScentsSoldOut =
+    requiresScent &&
+    productScents.length > 0 &&
+    productScents.every(
+      (productScent) => Number(productScent.stock || 0) <= 0
+    );
+
+  const productStock = Math.max(0, Number(product.stock || 0));
+
+  const productSoldOut = !hasVariants && productStock < 1;
+
+  const allVariantsSoldOut =
+    hasVariants &&
+    variants.length > 0 &&
+    variants.every((variant) => Number(variant.stock || 0) <= 0);
+
+  const selectedVariantSoldOut =
+    hasVariants &&
+    variantSelectionComplete &&
+    (!selectedVariant || variantStock < 1);
+
+  const soldOut =
+    productSoldOut ||
+    allVariantsSoldOut ||
+    allScentsSoldOut ||
+    selectedVariantSoldOut ||
+    selectedScentSoldOut;
+
+  let availableStock = 0;
+
+  if (hasVariants) {
+    if (variantSelectionComplete) {
+      if (requiresScent) {
+        if (scentSelectionComplete) {
+          availableStock = Math.min(variantStock, scentStock);
+        }
+      } else {
+        availableStock = variantStock;
+      }
+    }
+  } else {
+    if (requiresScent) {
+      if (scentSelectionComplete) {
+        availableStock = Math.min(productStock, scentStock);
+      }
+    } else {
+      availableStock = productStock;
+    }
+  }
+
+  const maxQuantity =
+    availableStock > 0 ? Math.min(availableStock, MAX_PER_LINE) : 1;
 
   const relatedProducts = products
     .filter(
@@ -106,36 +212,240 @@ function ProductDetails() {
     )
     .slice(0, 4);
 
+  function isColorSoldOut(colorName) {
+    if (!hasVariants) {
+      return false;
+    }
+
+    const matchingVariants = variants.filter((variant) => {
+      const variantColor = variant.color?.name || null;
+
+      const variantSize = variant.size?.name || null;
+
+      if (variantColor !== colorName) {
+        return false;
+      }
+
+      if (selectedSize) {
+        return variantSize === selectedSize;
+      }
+
+      return true;
+    });
+
+    if (!matchingVariants.length) {
+      return true;
+    }
+
+    return matchingVariants.every(
+      (variant) => Number(variant.stock || 0) <= 0
+    );
+  }
+
+  function isSizeSoldOut(sizeName) {
+    if (!hasVariants) {
+      return false;
+    }
+
+    const matchingVariants = variants.filter((variant) => {
+      const variantSize = variant.size?.name || null;
+
+      const variantColor = variant.color?.name || null;
+
+      if (variantSize !== sizeName) {
+        return false;
+      }
+
+      if (selectedColor) {
+        return variantColor === selectedColor;
+      }
+
+      return true;
+    });
+
+    if (!matchingVariants.length) {
+      return true;
+    }
+
+    return matchingVariants.every(
+      (variant) => Number(variant.stock || 0) <= 0
+    );
+  }
+
+  function isScentSoldOut(productScent) {
+    return Number(productScent?.stock || 0) <= 0;
+  }
+
+  function getScentName(productScent) {
+    return productScent?.scent?.name || productScent?.name || "";
+  }
+
+  function getScentLabel(productScent) {
+    const scent = productScent?.scent || productScent;
+
+    if (!scent) {
+      return "";
+    }
+
+    return isArabic ? scent.nameAr || scent.name || "" : scent.name || "";
+  }
+
+  function handleColorChange(colorName) {
+    setFormError("");
+    setAdded(false);
+    setSelectedColor(colorName);
+    setQuantity(1);
+  }
+
+  function handleSizeChange(sizeName) {
+    setFormError("");
+    setAdded(false);
+    setSelectedSize(sizeName);
+    setQuantity(1);
+  }
+
+  function handleScentChange(scentName) {
+    setFormError("");
+    setAdded(false);
+    setSelectedScent(scentName);
+    setQuantity(1);
+  }
+
   async function handleAddToCart() {
     setFormError("");
+    setAdded(false);
 
-    if (product.sizes.length > 0 && !selectedSize) {
+    if (requiresSize && !selectedSize) {
       setFormError(
-        pick(
-          "Please select a size.",
-          "من فضلك اختاري المقاس."
-        )
+        pick("Please select a size.", "من فضلك اختاري المقاس.")
       );
+
       return;
     }
 
-    if (product.colors.length > 0 && !selectedColor) {
+    if (requiresColor && !selectedColor) {
       setFormError(
-        pick(
-          "Please select a color.",
-          "من فضلك اختاري اللون."
-        )
+        pick("Please select a color.", "من فضلك اختاري اللون.")
       );
+
       return;
     }
 
-    if (scents.length > 0 && !selectedScent) {
+    if (requiresScent && !selectedScent) {
+      setFormError(
+        pick("Please select a scent.", "من فضلك اختاري الرائحة.")
+      );
+
+      return;
+    }
+
+    if (hasVariants) {
+      if (!selectedVariant) {
+        setFormError(
+          pick(
+            "This size and color combination is not available.",
+            "تركيبة المقاس واللون دي غير متاحة."
+          )
+        );
+
+        return;
+      }
+
+      if (variantStock < 1) {
+        setFormError(
+          pick(
+            "This combination is sold out.",
+            "التركيبة دي خلصت من المخزون."
+          )
+        );
+
+        return;
+      }
+
+      if (quantity > variantStock) {
+        setFormError(
+          pick(
+            "The selected quantity is not available.",
+            "الكمية المختارة مش متاحة."
+          )
+        );
+
+        setQuantity(
+          Math.max(1, Math.min(variantStock, MAX_PER_LINE))
+        );
+
+        return;
+      }
+    } else {
+      if (productStock < 1) {
+        setFormError(
+          pick("This product is sold out.", "المنتج ده خلص من المخزون.")
+        );
+
+        return;
+      }
+
+      if (quantity > productStock) {
+        setFormError(
+          pick(
+            "The selected quantity is not available.",
+            "الكمية المختارة مش متاحة."
+          )
+        );
+
+        setQuantity(
+          Math.max(1, Math.min(productStock, MAX_PER_LINE))
+        );
+
+        return;
+      }
+    }
+
+    if (requiresScent) {
+      if (!selectedProductScent) {
+        setFormError(
+          pick("This scent is not available.", "الرائحة دي غير متاحة.")
+        );
+
+        return;
+      }
+
+      if (scentStock < 1) {
+        setFormError(
+          pick("This scent is sold out.", "الرائحة دي خلصت من المخزون.")
+        );
+
+        return;
+      }
+
+      if (quantity > scentStock) {
+        setFormError(
+          pick(
+            "The selected quantity is not available for this scent.",
+            "الكمية المختارة مش متاحة من الرائحة دي."
+          )
+        );
+
+        setQuantity(
+          Math.max(1, Math.min(scentStock, MAX_PER_LINE))
+        );
+
+        return;
+      }
+    }
+
+    if (availableStock < 1 || quantity > availableStock) {
       setFormError(
         pick(
-          "Please select a scent.",
-          "من فضلك اختاري الرائحة."
+          "The selected quantity is not available.",
+          "الكمية المختارة مش متاحة."
         )
       );
+
+      setQuantity(
+        Math.max(1, Math.min(Math.max(1, availableStock), MAX_PER_LINE))
+      );
+
       return;
     }
 
@@ -154,6 +464,7 @@ function ProductDetails() {
           ? "الكمية المتاحة من المنتج ده محدودة."
           : result.message
       );
+
       return;
     }
 
@@ -164,19 +475,19 @@ function ProductDetails() {
     }, 2000);
   }
 
+  const addToCartDisabled =
+    soldOut ||
+    (hasVariants && !variantSelectionComplete) ||
+    (requiresScent && !scentSelectionComplete);
+
   return (
     <PageLayout>
       <main>
         <div className="product-details">
-
-          {/* GALLERY */}
           <div className="pd-gallery">
             <div className="pd-main-image">
               {images[activeImage] ? (
-                <img
-                  src={images[activeImage]}
-                  alt={nameOf(product)}
-                />
+                <img src={images[activeImage]} alt={nameOf(product)} />
               ) : (
                 <div className="product-image-empty" />
               )}
@@ -188,9 +499,7 @@ function ProductDetails() {
                   <button
                     key={index}
                     type="button"
-                    className={
-                      index === activeImage ? "active" : ""
-                    }
+                    className={index === activeImage ? "active" : ""}
                     onClick={() => setActiveImage(index)}
                   >
                     <img
@@ -203,7 +512,6 @@ function ProductDetails() {
             )}
           </div>
 
-          {/* INFO */}
           <div className="pd-info">
             <span className="hero-eyebrow">
               {categoryLabel(product.category)}
@@ -212,43 +520,27 @@ function ProductDetails() {
             <h1>{nameOf(product)}</h1>
 
             <div className="pd-price">
-              {product.oldPrice &&
-                product.oldPrice > product.price && (
-                  <s>{money(product.oldPrice)}</s>
-                )}
+              {product.oldPrice && product.oldPrice > product.price && (
+                <s>{money(product.oldPrice)}</s>
+              )}
 
               <strong>{money(product.price)}</strong>
             </div>
 
             {soldOut && (
-              <div className="pd-stock pd-stock-out">
-                {t("soldOut")}
-              </div>
+              <div className="pd-stock pd-stock-out">{t("soldOut")}</div>
             )}
 
-            {!soldOut && product.stock <= 5 && (
-              <div className="pd-stock">
-                {pick(
-                  `Only ${product.stock} left in stock`,
-                  `متبقي ${product.stock} فقط في المخزون`
-                )}
-              </div>
-            )}
-
-            {/* COLORS */}
-            {product.colors.length > 0 && (
+            {product.colors?.length > 0 && (
               <div className="pd-option-group pd-color-group">
                 <div className="pd-option-heading">
-                  <span className="pd-option-label">
-                    {t("color")}
-                  </span>
+                  <span className="pd-option-label">{t("color")}</span>
 
                   {selectedColor && (
                     <span className="pd-selected-option">
                       {colorLabel(
                         product.colors.find(
-                          (c) =>
-                            c.name === selectedColor
+                          (color) => color.name === selectedColor
                         )
                       )}
                     </span>
@@ -257,8 +549,9 @@ function ProductDetails() {
 
                 <div className="pd-color-options">
                   {product.colors.map((color) => {
-                    const isSelected =
-                      selectedColor === color.name;
+                    const isSelected = selectedColor === color.name;
+
+                    const colorSoldOut = isColorSoldOut(color.name);
 
                     return (
                       <button
@@ -266,28 +559,33 @@ function ProductDetails() {
                         type="button"
                         className={`pd-color-circle ${
                           isSelected ? "active" : ""
-                        }`}
+                        } ${colorSoldOut ? "sold-out" : ""}`}
                         onClick={() =>
-                          setSelectedColor(color.name)
+                          !colorSoldOut && handleColorChange(color.name)
                         }
-                        title={colorLabel(color)}
+                        title={
+                          colorSoldOut
+                            ? `${colorLabel(color)} - ${t("soldOut")}`
+                            : colorLabel(color)
+                        }
                         aria-label={colorLabel(color)}
+                        disabled={colorSoldOut}
                       >
                         <span
                           className="pd-color-fill"
                           style={{
-                            backgroundColor:
-                              color.hex || "#f5f5f5",
+                            backgroundColor: color.hex || "#f5f5f5",
                           }}
                         />
 
-                        {isSelected && (
+                        {isSelected && !colorSoldOut && (
                           <span className="pd-color-check">
-                            <Check
-                              size={15}
-                              strokeWidth={3}
-                            />
+                            <Check size={15} strokeWidth={3} />
                           </span>
+                        )}
+
+                        {colorSoldOut && (
+                          <span className="pd-color-sold-line" />
                         )}
                       </button>
                     );
@@ -296,13 +594,10 @@ function ProductDetails() {
               </div>
             )}
 
-            {/* SIZES */}
-            {product.sizes.length > 0 && (
+            {product.sizes?.length > 0 && (
               <div className="pd-option-group">
                 <div className="pd-option-heading">
-                  <span className="pd-option-label">
-                    {t("size")}
-                  </span>
+                  <span className="pd-option-label">{t("size")}</span>
 
                   {selectedSize && (
                     <span className="pd-selected-option">
@@ -312,81 +607,27 @@ function ProductDetails() {
                 </div>
 
                 <div className="pd-sizes">
-                  {product.sizes.map((size) => (
-                    <button
-                      key={size}
-                      type="button"
-                      className={`pd-size ${
-                        selectedSize === size
-                          ? "active"
-                          : ""
-                      }`}
-                      onClick={() =>
-                        setSelectedSize(size)
-                      }
-                    >
-                      {size}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* SCENTS */}
-            {scents.length > 0 && (
-              <div className="pd-option-group">
-                <div className="pd-option-heading">
-                  <span className="pd-option-label">
-                    {pick("Scent", "الرائحة")}
-                  </span>
-
-                  {selectedScent && (
-                    <span className="pd-selected-option">
-                      {(() => {
-                        const selected = scents.find(
-                          (scent) =>
-                            scent.name ===
-                            selectedScent
-                        );
-
-                        return isArabic
-                          ? selected?.nameAr ||
-                              selected?.name
-                          : selected?.name;
-                      })()}
-                    </span>
-                  )}
-                </div>
-
-                <div className="pd-sizes">
-                  {scents.map((scent) => {
-                    const isSelected =
-                      selectedScent === scent.name;
-
-                    const scentName = isArabic
-                      ? scent.nameAr || scent.name
-                      : scent.name;
+                  {product.sizes.map((size) => {
+                    const sizeSoldOut = isSizeSoldOut(size);
 
                     return (
                       <button
-                        key={scent.id}
+                        key={size}
                         type="button"
                         className={`pd-size ${
-                          isSelected ? "active" : ""
-                        }`}
+                          selectedSize === size ? "active" : ""
+                        } ${sizeSoldOut ? "sold-out" : ""}`}
                         onClick={() =>
-                          setSelectedScent(scent.name)
+                          !sizeSoldOut && handleSizeChange(size)
                         }
+                        disabled={sizeSoldOut}
                       >
-                        {scentName}
+                        {size}
 
-                        {isSelected && (
-                          <Check
-                            size={14}
-                            style={{
-                              marginInlineStart: 6,
-                            }}
-                          />
+                        {sizeSoldOut && (
+                          <span className="pd-size-sold-label">
+                            {t("soldOut")}
+                          </span>
                         )}
                       </button>
                     );
@@ -395,52 +636,109 @@ function ProductDetails() {
               </div>
             )}
 
-            {/* QUANTITY */}
-            {!soldOut && (
+            {productScents.length > 0 && (
               <div className="pd-option-group">
-                <span className="pd-option-label">
-                  {t("quantity")}
-                </span>
+                <div className="pd-option-heading">
+                  <span className="pd-option-label">
+                    {pick("Scent", "الرائحة")}
+                  </span>
 
-                <div className="pd-quantity">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setQuantity((q) =>
-                        Math.max(1, q - 1)
-                      )
+                  {selectedScent && (
+                    <span className="pd-selected-option">
+                      {getScentLabel(selectedProductScent)}
+                    </span>
+                  )}
+                </div>
+
+                <div className="pd-sizes">
+                  {productScents.map((productScent) => {
+                    const scent = productScent?.scent;
+
+                    if (!scent) {
+                      return null;
                     }
-                    aria-label={t("decrease")}
-                  >
-                    <Minus size={16} />
-                  </button>
 
-                  <span>{quantity}</span>
+                    const scentName = getScentName(productScent);
 
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setQuantity((q) =>
-                        Math.min(
-                          maxQuantity,
-                          q + 1
-                        )
-                      )
-                    }
-                    disabled={quantity >= maxQuantity}
-                    aria-label={t("increase")}
-                  >
-                    <Plus size={16} />
-                  </button>
+                    const scentLabel = getScentLabel(productScent);
+
+                    const isSelected = selectedScent === scentName;
+
+                    const scentSoldOut = isScentSoldOut(productScent);
+
+                    return (
+                      <button
+                        key={scent.id}
+                        type="button"
+                        className={`pd-size ${
+                          isSelected ? "active" : ""
+                        } ${scentSoldOut ? "sold-out" : ""}`}
+                        onClick={() =>
+                          !scentSoldOut && handleScentChange(scentName)
+                        }
+                        disabled={scentSoldOut}
+                        title={
+                          scentSoldOut
+                            ? `${scentLabel} - ${t("soldOut")}`
+                            : scentLabel
+                        }
+                      >
+                        {scentLabel}
+
+                        {scentSoldOut ? (
+                          <span className="pd-size-sold-label">
+                            {t("soldOut")}
+                          </span>
+                        ) : (
+                          isSelected && (
+                            <Check
+                              size={14}
+                              style={{ marginInlineStart: 6 }}
+                            />
+                          )
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
 
-            {formError && (
-              <div className="auth-error">
-                {formError}
-              </div>
-            )}
+            {!soldOut &&
+              (!hasVariants || variantSelectionComplete) &&
+              (!requiresScent || scentSelectionComplete) &&
+              availableStock > 0 && (
+                <div className="pd-option-group">
+                  <span className="pd-option-label">{t("quantity")}</span>
+
+                  <div className="pd-quantity">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setQuantity((q) => Math.max(1, q - 1))
+                      }
+                      aria-label={t("decrease")}
+                    >
+                      <Minus size={16} />
+                    </button>
+
+                    <span>{quantity}</span>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setQuantity((q) => Math.min(maxQuantity, q + 1))
+                      }
+                      disabled={quantity >= maxQuantity}
+                      aria-label={t("increase")}
+                    >
+                      <Plus size={16} />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+            {formError && <div className="auth-error">{formError}</div>}
 
             <div className="pd-actions">
               <button
@@ -449,7 +747,7 @@ function ProductDetails() {
                   added ? "added" : ""
                 }`}
                 onClick={handleAddToCart}
-                disabled={soldOut}
+                disabled={addToCartDisabled}
               >
                 {soldOut ? (
                   t("soldOut")
@@ -465,30 +763,20 @@ function ProductDetails() {
 
               <button
                 type="button"
-                className={`pd-fav-btn ${
-                  favorited ? "active" : ""
-                }`}
-                onClick={() =>
-                  toggleFavorite(product)
-                }
+                className={`pd-fav-btn ${favorited ? "active" : ""}`}
+                onClick={() => toggleFavorite(product)}
                 aria-label={t("addToWishlist")}
                 title={t("addToWishlist")}
               >
                 <Heart
                   size={21}
-                  fill={
-                    favorited
-                      ? "currentColor"
-                      : "none"
-                  }
+                  fill={favorited ? "currentColor" : "none"}
                 />
               </button>
             </div>
 
             {description && (
-              <p className="pd-description">
-                {description}
-              </p>
+              <p className="pd-description">{description}</p>
             )}
           </div>
         </div>
@@ -506,4 +794,3 @@ function ProductDetails() {
 }
 
 export default ProductDetails;
-

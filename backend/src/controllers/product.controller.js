@@ -1,4 +1,3 @@
-
 const prisma = require("../config/prisma");
 const { toId } = require("../utils/helpers");
 
@@ -28,6 +27,36 @@ const productInclude = {
     include: {
       scent: true,
     },
+  },
+
+  // ======================================
+  // PRODUCT VARIANTS / STOCK
+  // ======================================
+  // Each variant represents one Size + Color
+  // combination and has its own stock.
+  //
+  // Example:
+  // S + Black = 5
+  // S + White = 2
+  // M + Black = 8
+  //
+  // Scent does NOT affect stock.
+  // ======================================
+
+  variants: {
+    include: {
+      size: true,
+      color: true,
+    },
+
+    orderBy: [
+      {
+        sizeId: "asc",
+      },
+      {
+        colorId: "asc",
+      },
+    ],
   },
 };
 
@@ -112,4 +141,3 @@ module.exports = {
   getProductById,
   productInclude,
 };
-

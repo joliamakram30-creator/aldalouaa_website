@@ -37,7 +37,6 @@ model User {
   name      String
   email     String   @unique
   password  String
-  // false = account was created with Google sign-in and has no password of its own yet
   passwordSet Boolean @default(true)
   googleId  String?  @unique
   phone     String?
@@ -45,9 +44,9 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  orders   Order[]
-  cart     Cart?
-  wishlist Wishlist[]
+  orders        Order[]
+  cart          Cart?
+  wishlist      Wishlist[]
   notifications Notification[]
 }
 
@@ -70,22 +69,30 @@ model Product {
   slug          String   @unique
   description   String?  @db.Text
   descriptionAr String?  @db.Text
-  price       Decimal  @db.Decimal(10, 2)
-  oldPrice    Decimal? @db.Decimal(10, 2)
-  stock       Int      @default(0)
-  image       String?
-  isActive    Boolean  @default(true)
-  isFeatured  Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+
+  price    Decimal  @db.Decimal(10, 2)
+  oldPrice Decimal? @db.Decimal(10, 2)
+
+  // Total stock of the whole product.
+  // Detailed stock is stored in ProductVariant.
+  stock Int @default(0)
+
+  image      String?
+  isActive   Boolean @default(true)
+  isFeatured Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   categoryId Int
   category   Category @relation(fields: [categoryId], references: [id])
 
-  images ProductImage[]
-  sizes  ProductSize[]
-  colors ProductColor[]
-  scents ProductScent[]
+  images   ProductImage[]
+  sizes    ProductSize[]
+  colors   ProductColor[]
+  scents   ProductScent[]
+  variants ProductVariant[]
+  
 
   orderItems OrderItem[]
   cartItems  CartItem[]
@@ -106,11 +113,11 @@ model ProductImage {
 }
 
 model StoreSetting {
-  id                   Int      @id @default(1)
-  freeShippingEnabled  Boolean  @default(true)
-  freeShippingThreshold Decimal @default(2000) @db.Decimal(10, 2)
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  id                    Int      @id @default(1)
+  freeShippingEnabled   Boolean  @default(true)
+  freeShippingThreshold Decimal  @default(2000) @db.Decimal(10, 2)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 }
 
 model ShippingZone {
@@ -131,6 +138,7 @@ model Size {
   updatedAt DateTime @updatedAt
 
   products ProductSize[]
+  variants ProductVariant[]
 }
 
 model Color {
@@ -142,6 +150,7 @@ model Color {
   updatedAt DateTime @updatedAt
 
   products ProductColor[]
+  variants ProductVariant[]
 }
 
 model Scent {
@@ -152,6 +161,7 @@ model Scent {
   updatedAt DateTime @updatedAt
 
   products ProductScent[]
+  
 }
 
 model ProductSize {
@@ -173,14 +183,78 @@ model ProductColor {
 
   @@id([productId, colorId])
 }
+
+/*
+  ============================================================
+  PRODUCT VARIANT STOCK
+  ============================================================
+
+  Each row represents one Size + Color combination.
+
+  Examples:
+
+  Product = Pajama
+  Size = S
+  Color = Black
+  Stock = 5
+
+  Product = Pajama
+  Size = M
+  Color = Black
+  Stock = 0
+
+  Product = Pajama
+  Size = L
+  Color = Pink
+  Stock = 3
+*/
+
+model ProductVariant {
+  id Int @id @default(autoincrement())
+
+  productId Int
+
+  // Nullable because some products may have:
+  // - colors only
+  // - sizes only
+  // - neither
+  sizeId  Int?
+  colorId Int?
+
+  // Actual stock for this exact variant.
+  stock Int @default(0)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  size    Size?   @relation(fields: [sizeId], references: [id], onDelete: Cascade)
+  color   Color?  @relation(fields: [colorId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Prevent duplicate combinations for the same product.
+  @@unique([productId, sizeId, colorId])
+
+  @@index([productId])
+  @@index([sizeId])
+  @@index([colorId])
+}
+
 model ProductScent {
+  id Int @id @default(autoincrement())
+
   productId Int
   scentId   Int
+  stock     Int @default(0)
 
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   scent   Scent   @relation(fields: [scentId], references: [id], onDelete: Cascade)
 
-  @@id([productId, scentId])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([productId, scentId])
+  @@index([productId])
+  @@index([scentId])
 }
 
 model Cart {
@@ -195,11 +269,13 @@ model Cart {
 }
 
 model CartItem {
-  id       Int    @id @default(autoincrement())
-  quantity Int    @default(1)
-  size     String @default("") @db.VarChar(64)
-  color    String @default("") @db.VarChar(64)
-  scent    String @default("") @db.VarChar(64)
+  id       Int @id @default(autoincrement())
+  quantity Int @default(1)
+
+  // Existing cart system keeps these as names.
+  size  String @default("") @db.VarChar(64)
+  color String @default("") @db.VarChar(64)
+  scent String @default("") @db.VarChar(64)
 
   cartId    Int
   productId Int
@@ -234,6 +310,7 @@ model Order {
 
   status OrderStatus @default(PENDING)
 
+  // Prevent releasing stock more than once.
   stockReleased Boolean @default(false)
 
   customerName  String
@@ -263,19 +340,21 @@ model Payment {
 
   reviewedBy  Int?
   reviewedAt  DateTime?
-  reviewNotes String?   @db.Text
+  reviewNotes String? @db.Text
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  orderId Int   @unique
-  order   Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId Int @unique
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 }
 
 model OrderItem {
-  id          Int     @id @default(autoincrement())
-  quantity    Int
-  price       Decimal @db.Decimal(10, 2)
+  id       Int     @id @default(autoincrement())
+  quantity Int
+  price    Decimal @db.Decimal(10, 2)
+
   productName String?
   size        String?
   color       String?
@@ -288,7 +367,6 @@ model OrderItem {
   product Product @relation(fields: [productId], references: [id])
 }
 
-
 model Notification {
   id        Int      @id @default(autoincrement())
   type      String   @default("ORDER")
@@ -299,7 +377,8 @@ model Notification {
   createdAt DateTime @default(now())
 
   adminId Int
-  admin   User @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  admin User @relation(fields: [adminId], references: [id], onDelete: Cascade)
 
   @@index([adminId, isRead, createdAt])
 }
