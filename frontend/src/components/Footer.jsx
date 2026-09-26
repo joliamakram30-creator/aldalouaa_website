@@ -1,18 +1,36 @@
-import { Mail, MessageCircle, ArrowUp } from "lucide-react";
+import { ArrowUp } from "lucide-react";
+
+// lucide-react no longer ships brand/logo icons (Instagram, Facebook, etc.),
+// so these two are small inline SVGs sized to match the other footer icons.
+function InstagramIcon({ size = 17 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+      <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+    </svg>
+  );
+}
+
+function FacebookIcon({ size = 17 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+    </svg>
+  );
+}
 import { Link } from "react-router-dom";
 import { useLanguage } from "../context/LanguageContext";
 
-// Contact links come from frontend/.env - only the ones you fill in are shown:
-//   VITE_CONTACT_EMAIL, VITE_WHATSAPP (e.g. 201023603882), VITE_INSTAGRAM_URL, VITE_FACEBOOK_URL
+// Social links come from frontend/.env - only the ones you fill in are shown:
+//   VITE_INSTAGRAM_URL, VITE_FACEBOOK_URL
 const env = import.meta.env;
-const email = env.VITE_CONTACT_EMAIL;
-const whatsapp = String(env.VITE_WHATSAPP || "").replace(/[^\d]/g, "");
 const instagram = env.VITE_INSTAGRAM_URL;
 const facebook = env.VITE_FACEBOOK_URL;
 
 function Footer() {
   const { t, isArabic } = useLanguage();
-  const hasContact = email || whatsapp || instagram || facebook;
+  const hasContact = instagram || facebook;
 
   return (
     <footer className="site-footer">
@@ -32,24 +50,14 @@ function Footer() {
 
         {hasContact && (
           <div className="footer-social">
-            {email && (
-              <a href={`mailto:${email}`} aria-label={isArabic ? "البريد الإلكتروني" : "Email"}>
-                <Mail size={17} />
-              </a>
-            )}
-            {whatsapp && (
-              <a href={`https://wa.me/${whatsapp}`} target="_blank" rel="noreferrer" aria-label="WhatsApp">
-                <MessageCircle size={17} />
-              </a>
-            )}
             {instagram && (
-              <a href={instagram} target="_blank" rel="noreferrer" aria-label="Instagram" className="footer-text-link">
-                IG
+              <a href={instagram} target="_blank" rel="noreferrer" aria-label="Instagram">
+                <InstagramIcon />
               </a>
             )}
             {facebook && (
-              <a href={facebook} target="_blank" rel="noreferrer" aria-label="Facebook" className="footer-text-link">
-                FB
+              <a href={facebook} target="_blank" rel="noreferrer" aria-label="Facebook">
+                <FacebookIcon />
               </a>
             )}
           </div>
