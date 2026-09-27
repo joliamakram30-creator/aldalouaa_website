@@ -92,7 +92,7 @@ model Product {
   colors   ProductColor[]
   scents   ProductScent[]
   variants ProductVariant[]
-  
+
 
   orderItems OrderItem[]
   cartItems  CartItem[]
@@ -161,7 +161,7 @@ model Scent {
   updatedAt DateTime @updatedAt
 
   products ProductScent[]
-  
+
 }
 
 model ProductSize {
@@ -350,6 +350,22 @@ model Payment {
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 }
 
+/*
+  FIX: productId is now OPTIONAL with onDelete: SetNull.
+
+  Before, this had a required `productId Int` with no onDelete
+  action, which defaults to RESTRICT at the database level. That
+  meant a Product could NEVER be deleted as long as a single
+  OrderItem pointed to it — even one belonging to a CANCELLED
+  order, since cancelling an order does not remove its OrderItem
+  rows.
+
+  This model already stores its own copy of productName, size,
+  color and scent, so it does not actually need the live product
+  row to display historical order details. Making productId
+  optional lets Prisma set it to NULL when the product is deleted,
+  instead of blocking the delete outright.
+*/
 model OrderItem {
   id       Int     @id @default(autoincrement())
   quantity Int
@@ -361,10 +377,10 @@ model OrderItem {
   scent       String?
 
   orderId   Int
-  productId Int
+  productId Int?
 
-  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id])
+  order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
 }
 
 model Notification {

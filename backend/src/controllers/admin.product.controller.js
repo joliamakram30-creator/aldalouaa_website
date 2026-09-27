@@ -1012,17 +1012,36 @@ const deleteProduct = async (req, res) => {
 
     const product = await prisma.product.findUnique({
       where: { id: productId },
-      include: {
-        images: true,
-        _count: { select: { orderItems: true } },
-      },
+      include: { images: true },
     });
 
     if (!product) {
       throw httpError(404, "Product not found");
     }
 
-    if (product._count.orderItems > 0) {
+    /*
+      FIX: only orders that are still ACTIVE (not cancelled) should
+      block deletion. Cancelling an order does not remove its
+      OrderItem rows, so counting every orderItem regardless of
+      status meant a product could never be deleted once it had
+      been ordered even once — even after that order was cancelled.
+
+      OrderItem already keeps its own productName/size/color/scent,
+      so a cancelled order's items don't need the live product row.
+      (This pairs with the schema fix making OrderItem.productId
+      optional with onDelete: SetNull, so the actual delete below
+      no longer hits a foreign key error either.)
+    */
+    const activeOrderItemsCount = await prisma.orderItem.count({
+      where: {
+        productId,
+        order: {
+          status: { not: "CANCELLED" },
+        },
+      },
+    });
+
+    if (activeOrderItemsCount > 0) {
       throw httpError(
         400,
         "Cannot delete a product that belongs to existing orders. Deactivate it instead."
@@ -1030,23 +1049,17 @@ const deleteProduct = async (req, res) => {
     }
 
     /*
-      FIX: a product also has rows in ProductImage, ProductSize,
-      ProductColor, ProductScent and ProductVariant. The old code
-      only cleared CartItem and Wishlist before calling
-      product.delete(), so Prisma hit a foreign key constraint on
-      any of those other tables and threw — which is exactly why
-      you saw an error message at the top but the product stayed
-      in the list. All child rows must be removed first, in the
-      same transaction, before deleting the product itself.
+      ProductImage, ProductSize, ProductColor, ProductScent and
+      ProductVariant are all declared with onDelete: Cascade in the
+      schema, so Prisma removes them automatically when the product
+      is deleted. CartItem has no cascade, so it must be cleared
+      manually first or the delete will fail with a foreign key
+      error. Wishlist already cascades too, but it's cleared here
+      for clarity.
     */
     await prisma.$transaction([
       prisma.cartItem.deleteMany({ where: { productId } }),
       prisma.wishlist.deleteMany({ where: { productId } }),
-      prisma.productImage.deleteMany({ where: { productId } }),
-      prisma.productSize.deleteMany({ where: { productId } }),
-      prisma.productColor.deleteMany({ where: { productId } }),
-      prisma.productScent.deleteMany({ where: { productId } }),
-      prisma.productVariant.deleteMany({ where: { productId } }),
       prisma.product.delete({ where: { id: productId } }),
     ]);
 
