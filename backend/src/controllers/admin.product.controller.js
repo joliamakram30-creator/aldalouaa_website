@@ -1236,17 +1236,12 @@ const createProduct = async (
       await prisma.$transaction(
         async (tx) => {
           const totalVariantStock =
-            variants !== null
-              ? variants.reduce(
-                  (
-                    total,
-                    variant
-                  ) =>
-                    total +
-                    variant.stock,
-                  0
-                )
-              : data.stock;
+  variants !== null && variants.length > 0
+    ? variants.reduce(
+        (total, variant) => total + variant.stock,
+        0
+      )
+    : data.stock;
 
           const created =
             await tx.product.create({
@@ -1783,28 +1778,20 @@ const updateProduct = async (
         */
 
         if (
-          variants !== null
-        ) {
-          data.stock =
-            variants.reduce(
-              (
-                total,
-                variant
-              ) =>
-                total +
-                variant.stock,
-              0
-            );
-        }
-
-        await tx.product.update({
-          where: {
-            id: productId,
-          },
-
-          data,
-        });
-
+  variants !== null &&
+  variants.length > 0
+) {
+  data.stock =
+    variants.reduce(
+      (
+        total,
+        variant
+      ) =>
+        total +
+        variant.stock,
+      0
+    );
+}
         // --------------------------------
         // SIZES
         // --------------------------------
