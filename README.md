@@ -1,146 +1,114 @@
 # الدلوعة — AL DALOUAA (متجر إلكتروني كامل)
+# AL DALOUAA | الدلوعة
 
-- `frontend/` — موقع العملاء + لوحة الأدمن على `/admin` (React + Vite)
-- `backend/` — الـ API (Express + Prisma + MySQL)
-- `docker-compose.yml` — قاعدة بيانات MySQL جاهزة على بورت `3307` (اختياري)
+### Full-Stack E-Commerce Platform
 
-الموقع بيشتغل **عربي / إنجليزي** (زرار اللغة في الناف بار وفي لوحة الأدمن) وكل الأسعار بالجنيه المصري.
+**AL DALOUAA** is a full-stack e-commerce platform designed to provide a seamless online shopping experience for women's fashion, sleepwear, beauty products, and accessories. The platform combines a customer-facing storefront with an integrated administration dashboard for managing products, orders, customers, payments, and shipping.
+
+The website supports Arabic and English, with product prices displayed in Egyptian pounds (EGP).
+
+## Project Overview
+
+AL DALOUAA brings the essential operations of an online store into one platform. Customers can browse products, explore categories, manage their shopping carts and wishlists, and place orders through the available payment methods. Administrators can manage store inventory, process orders, review payment information, and configure shipping policies through a dedicated dashboard.
+
+## Key Features
+
+### Customer Storefront
+
+- **Bilingual Interface:** Arabic and English language support across the shopping experience.
+- **Product Catalog:** Organized product listings with descriptions, pricing, product images, and category information.
+- **Product Variants:** Support for product options such as sizes, colors, and scents.
+- **Shopping Cart:** A centralized cart for reviewing selected products before checkout.
+- **Wishlist:** A dedicated space for saving favorite products.
+- **Checkout:** Order placement with customer details, delivery address, shipping information, and server-calculated totals.
+- **Flexible Payments:** Cash on Delivery and Vodafone Cash.
+- **Google Sign-In:** Google account authentication when the required credentials are configured.
+- **Shipping Information:** Shipping charges and free-shipping eligibility based on store settings.
+
+### Admin Dashboard
+
+The administration dashboard provides centralized management of the store's main operations.
+
+- **Product Management:** Create and update products, including bilingual names and descriptions, prices, previous prices, categories, and stock quantities.
+- **Image Management:** Upload multiple product images, reorder them, select a primary image, and remove images.
+- **Order Management:** Review customer information, delivery addresses, ordered products, selected variants, and order status.
+- **Payment Management:** Review Vodafone Cash transaction references and payment proof, then update payment status.
+- **Customer Management:** Access customer records and review their orders, purchase totals, shopping carts, and wishlists.
+- **Category Management:** Organize products into store categories.
+- **Variant Management:** Manage available sizes and colors.
+- **Shipping Management:** Configure shipping regions, adjust delivery charges, and enable or disable regions.
+- **Free Shipping Configuration:** Control free-shipping availability and the minimum qualifying order subtotal.
+- **Store Analytics:** Access dashboard statistics for an overview of store activity.
+- **Order Notifications:** Receive notifications for newly placed orders through the administration dashboard.
+
+### Payments & Shipping
+
+The platform supports two payment methods:
+
+- Cash on Delivery.
+- Vodafone Cash.
+
+Visa and Mastercard payments are not supported.
+
+Shipping charges are managed through the administration dashboard. The platform also supports configurable free-shipping rules, allowing the store to adjust the minimum qualifying order subtotal without relying solely on a fixed value in the application configuration.
+
+### Authentication & Security
+
+The platform includes authentication and server-side validation mechanisms designed to protect store operations.
+
+- User authentication and role-based administrative access.
+- Server-side validation of prices, inventory, and order totals.
+- Google identity token verification when Google Sign-In is enabled.
+- Image upload validation.
+- Login attempt restrictions and duplicate-account prevention measures.
+
+## Technology Stack
+
+| Technology | Purpose |
+|---|---|
+| React | Customer-facing interface and admin dashboard |
+| Vite | Frontend development and build tooling |
+| Express.js | Backend API and application logic |
+| Node.js | Backend runtime |
+| Prisma ORM | Database access and schema management |
+| MySQL | Relational database |
+| Docker Compose | Optional local database environment |
+
+## Application Architecture
+
+AL DALOUAA follows a frontend-backend architecture that separates the user interface from server-side operations.
+
+- **Frontend Layer:** Handles product browsing, shopping interactions, account interfaces, checkout screens, and administration pages.
+- **Backend Layer:** Processes API requests, authentication, product and order operations, inventory validation, payment information, and shipping calculations.
+- **Database Layer:** Stores application data, including users, products, product images, orders, store settings, and related records.
+
+This separation helps keep business logic and important validation on the server while providing a responsive interface for customers and administrators.
+
+## Brand Identity
+
+**Brand:** AL DALOUAA — الدلوعة
+
+**Homepage tagline:**
+
+لينا جوا كل بيت حكاية
+
+ثقة منذ 1995
+
+**English version:**
+
+*A story in every home.*
+
+*Trusted since 1995.*
+
+## Project Goals
+
+- Deliver a convenient online shopping experience.
+- Provide an organized system for managing products and inventory.
+- Simplify order processing and payment review.
+- Give administrators control over shipping policies and store settings.
+- Support Arabic-speaking and English-speaking customers through a bilingual interface.
+- Maintain a clear separation between the storefront, backend services, and database.
 
 ---
 
-## أهم اللي في النسخة دي
-
-**لوحة الأدمن**
-- إضافة منتج بتشتغل، وتعديل أي منتج موجود (الاسم عربي/إنجليزي، الوصف، السعر، السعر القديم، المخزون، القسم، المقاسات، الألوان).
-- **رفع أكتر من صورة للمنتج** (لحد 10) — ترتيبهم وتحديد الصورة الرئيسية بضغطة، وحذف أي صورة.
-- الطلبات: الأدمن بيشوف بيانات العميلة، العنوان، المحافظة، المنتجات (بالمقاس واللون)، **طريقة الدفع اللي اختارتها**، رقم عملية فودافون كاش وصورة الإثبات، وبيقبل أو يرفض الدفع ويغيّر حالة الطلب.
-- العملاء: كل عميلة وطلباتها وطرق الدفع اللي استخدمتها وإجمالي مشترياتها والمفضلة والسلة.
-- الأقسام، المقاسات والألوان، ولوحة إحصائيات.
-- صفحة **الشحن**: أسعار كل المحافظات تتعدل من اللوحة، وتقدري تضيفي محافظة أو توقفيها.
-
-**الدفع** — الطرق المتاحة بس: **الدفع عند الاستلام** و**فودافون كاش**. (فيزا/ماستركارد اتشالت بالكامل.)
-
-**الشحن** — كل محافظات الجدول اللي اتفقنا عليه (21 منطقة) وكل واحدة بسعرها، والشحن المجاني للطلبات من 2000 جنيه (بتتغير من `FREE_SHIPPING_THRESHOLD`).
-
-**الرئيسية** — «لينا جوا كل بيت حكاية» وتحتها «ثقة منذ 1995» (وبالإنجليزي: A story in every home / Trusted since 1995).
-
-**تسجيل الدخول بجوجل** — زرار «المتابعة بحساب Google» حقيقي في صفحتي الدخول والتسجيل. السيرفر بيتأكد من التوكن مع جوجل نفسها، ولو الإيميل مسجل قبل كده بيربط الحساب من غير ما يعمل نسخة مكررة. الزرار بيظهر بس لما تحطي `GOOGLE_CLIENT_ID` (شوفي الخطوات تحت).
-
-**أمان وإصلاحات** — الحسابات والأسعار والمخزون بتتحسب وتتراجع من السيرفر مش من المتصفح، صلاحية الأدمن بتتقرا من قاعدة البيانات في كل طلب، رفع الصور بيتأكد إنها صور حقيقية، حماية من التكرار وتحديد عدد المحاولات في تسجيل الدخول، وتم حذف أي باسورد أو ملفات تجريبية كانت في الكود.
-
----
-
-## التشغيل على جهازك
-
-### أسرع طريقة على Windows / PowerShell
-
-1. افتحي PowerShell داخل فولدر المشروع.
-2. شغّلي قاعدة البيانات:
-```powershell
-docker compose up -d
-```
-3. Backend:
-```powershell
-cd backend
-npm install
-npm run setup
-npm run create-admin -- "اسم الأدمن" admin@example.com "Password-قوي-جداً"
-npm start
-```
-4. افتحي PowerShell ثانية للـ Frontend:
-```powershell
-cd frontend
-npm install
-npm run dev
-```
-
-> النسخة المرفقة فيها `backend/.env` و`frontend/.env` محليين جاهزين للتشغيل على MySQL الموجود في `docker-compose.yml`. الـ JWT secret الموجود محلي فقط ويمكن تغييره قبل أي نشر حقيقي.
-
-### 1) قاعدة البيانات
-```bash
-docker compose up -d
-```
-(أو استخدمي أي MySQL/MariaDB وحطي بياناته في `DATABASE_URL`.)
-
-### 2) الـ Backend
-```bash
-cd backend
-npm install
-# لو هتستخدمي إعدادات مختلفة، انسخي .env.example إلى .env وعدّلي القيم
-npm run setup               # generate + migrate + seed
-npm run create-admin -- "اسمك" you@example.com "باسورد-قوي-8-حروف-أو-أكتر"
-npm start
-```
-- `npm run seed:demo` (اختياري) بيضيف 4 منتجات تجريبية علشان الموقع مايبقاش فاضي وأنتِ بتجربي — امسحيهم من لوحة الأدمن قبل الإطلاق.
-- الـ API على `http://localhost:5000`.
-
-### 3) الـ Frontend
-```bash
-cd frontend
-npm install
-cp .env.example .env        # VITE_API_URL=http://localhost:5000/api
-npm run dev
-```
-- الموقع: `http://localhost:5173` — لوحة الأدمن: `http://localhost:5173/admin` (بنفس تسجيل الدخول، والحساب لازم يكون أدمن).
-- في `frontend/.env` تقدري تضيفي (اختياري) `VITE_CONTACT_EMAIL` و`VITE_WHATSAPP` و`VITE_INSTAGRAM_URL` و`VITE_FACEBOOK_URL` وهيظهروا في الفوتر.
-
----
-
-## تفعيل تسجيل الدخول بجوجل (مرة واحدة)
-
-الزرار محتاج «Client ID» من حسابك على جوجل، ومن غيره بيفضل مخفي:
-
-1. ادخلي على [Google Cloud Console](https://console.cloud.google.com/apis/credentials) وأنشئي مشروع (لو معندكيش)، وجهزي شاشة الموافقة **OAuth consent screen** (اسم التطبيق والإيميل).
-2. من **Credentials ← Create credentials ← OAuth client ID** اختاري النوع **Web application**.
-3. تحت **Authorized JavaScript origins** ضيفي عنوان موقعك: `http://localhost:5173` للتجربة، و`https://موقعك-الحقيقي.com` للإطلاق.
-4. انسخي الـ Client ID (بيخلص بـ `.apps.googleusercontent.com`) وحطيه في `backend/.env`:
-   ```
-   GOOGLE_CLIENT_ID="xxxxxxxx.apps.googleusercontent.com"
-   ```
-5. أعيدي تشغيل الـ backend. خلاص — الفرونت بياخد الـ Client ID من الـ API تلقائي ومحتاجش تعملي حاجة في `frontend/.env`.
-
-ملاحظات: لحد ما تنشري التطبيق («Publish app») في شاشة الموافقة، بس الإيميلات اللي تضيفيها كـ Test users هتقدر تدخل. ولو الموقع بيبعت هيدر `Cross-Origin-Opener-Policy: same-origin` من الاستضافة، شيليه أو خليه `same-origin-allow-popups` وإلا نافذة جوجل مش هتشتغل. حساب جوجل جديد بيتعمل من غير كلمة مرور، وتقدر العميلة تحط كلمة مرور من صفحة حسابها.
-
-## لو عندك قاعدة بيانات شغالة من النسخة القديمة
-
-1. **خدي نسخة احتياطية من قاعدة البيانات الأول.**
-2. حطي `DATABASE_URL` بتاعتك في `backend/.env` وشغّلي `npm run prisma:migrate` — المايجريشن الجديدة (`store_upgrade` و`google_login`) بتحوّل أي دفعات فيزا قديمة لـ«الدفع عند الاستلام»، وتضيف الأسماء العربي وجدول الشحن والصور المتعددة، وتنقل صورة كل منتج لجدول الصور الجديد.
-3. شغّلي `npm run seed` (آمن، مابيمسحش حاجة عدلتيها).
-4. غيّري باسورد الأدمن بـ `npm run create-admin -- "اسمك" email "باسورد-جديد"`.
-
-## قبل الإطلاق (Checklist)
-
-- [ ] `JWT_SECRET` طويل وعشوائي: `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`
-- [ ] غيّري `DB_CONNECTION_LIMIT` لو الاستضافة تحتاج pool أكبر، والقيمة الافتراضية في النسخة دي 10.
-- [ ] `FRONTEND_URL` = عنوان موقعك الحقيقي (بدونه الـ API بيرفض الطلبات من الموقع) و`NODE_ENV=production`، و`TRUST_PROXY=1` لو ورا nginx/استضافة.
-- [ ] `VODAFONE_CASH_NUMBER` = رقمك الحقيقي.
-- [ ] `GOOGLE_CLIENT_ID` متظبط ومعاه عنوان موقعك الحقيقي في الـ Authorized origins.
-- [ ] **الصور:** الافتراضي بتتخزن على السيرفر في `backend/uploads`. لو استضافتك بتمسح الملفات مع كل تحديث (Render/Railway/Heroku…) استخدمي Cloudinary (املي `CLOUDINARY_*` التلاتة) أو ديسك دائم، وخدي نسخة احتياطية من فولدر `uploads`.
-- [ ] شغّلي الموقع على HTTPS.
-- [ ] امسحي المنتجات التجريبية لو شغّلتي `seed:demo`.
-- [ ] `npm run build` في الـ frontend وارفعي فولدر `dist` مع إعداد إن أي رابط يرجع لـ `index.html` (SPA).
-- [ ] خدي نسخة احتياطية دورية من قاعدة البيانات.
-
-## ملاحظات
-
-- الفوتر مافيهوش روابط سوشيال وهمية — بتظهر بس اللي تحطيها في `frontend/.env`.
-- محافظات مش في الجدول (الدقهلية، الفيوم، أسيوط، مطروح، سيناء، الوادي الجديد…) تقدري تضيفيها بسعرها من **الأدمن ← الشحن**.
-
-## Latest production-ready updates
-
-- Product scents are now stored through the full cart -> order flow.
-- Checkout was rebuilt so it uses the real Store config, governorates and server-calculated totals.
-- Admin notifications are stored in the database and appear in the dashboard with an unread badge. New orders are created as notifications AFTER the order transaction commits, so a notification problem can never cancel a valid order. The admin panel polls for new notifications every 10 seconds; after browser notification permission is granted from the bell button, a new order also triggers a desktop browser notification.
-- Home page shows an Admin Dashboard button only to ADMIN users.
-- Admin > Shipping now controls free shipping directly: enable/disable it and change the minimum subtotal without editing `.env`.
-- Visa/Mastercard is not supported; checkout only offers Cash on Delivery and Vodafone Cash.
-
-### Run after updating the project
-
-1. Start MySQL with `docker compose up -d`.
-2. Copy `backend/.env.example` to `backend/.env` and set a real `JWT_SECRET`.
-3. Copy `frontend/.env.example` to `frontend/.env` if needed.
-4. In `backend`: `npm install`, then `npm run prisma:generate`, then `npm run prisma:migrate`.
-5. In `frontend`: `npm install`, then `npm run dev`.
-
-The new migration is `20260922030000_store_settings_scent_notifications`.
+**AL DALOUAA — Bringing style, convenience, and a seamless shopping experience together.**
